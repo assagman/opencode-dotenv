@@ -9,6 +9,9 @@ const LOAD_GUARD = "__opencodeDotenvLoaded"
 interface DotEnvConfig {
   files: string[]
   load_cwd_env?: boolean
+  logging?: {
+    enabled?: boolean
+  }
 }
 
 function parseDotenv(content: string): Record<string, string> {
@@ -39,7 +42,10 @@ function expandPath(path: string): string {
   return path.replace(/^~/, homedir())
 }
 
+let loggingEnabled = true
+
 function logToFile(message: string): void {
+  if (!loggingEnabled) return
   try {
     const timestamp = new Date().toISOString()
     Bun.appendFileSync(LOG_FILE, `[${timestamp}] ${message}\n`)
@@ -57,12 +63,16 @@ async function loadConfig(): Promise<DotEnvConfig> {
   for (const configPath of configPaths) {
     try {
       const file = Bun.file(configPath)
-      if (!file.exists()) continue
+      if (!(await file.exists())) continue
 
       const content = await file.text()
-      return parse(content) as DotEnvConfig
+      const config = parse(content, [], { allowTrailingComma: true }) as DotEnvConfig
+
+      // Apply logging setting from config
+      loggingEnabled = config.logging?.enabled !== false
+      return config
     } catch (e) {
-      logToFile(`Failed to load config from ${configPath}: ${e}`)
+      logToFile(`Failed to load config: ${e}`)
     }
   }
 
@@ -72,7 +82,7 @@ async function loadConfig(): Promise<DotEnvConfig> {
 async function loadDotenvFile(filePath: string): Promise<{ count: number; success: boolean }> {
   try {
     const file = Bun.file(filePath)
-    if (!file.exists()) {
+    if (!(await file.exists())) {
       logToFile(`File not found: ${filePath}`)
       return { count: 0, success: false }
     }
@@ -100,7 +110,7 @@ export const DotEnvPlugin: Plugin = async (ctx) => {
   logToFile("Plugin started")
 
   const config = await loadConfig()
-  logToFile(`Config: ${JSON.stringify(config)}`)
+  logToFile(`Config loaded: ${config.files.length} files, load_cwd_env=${config.load_cwd_env}, logging=${loggingEnabled}`)
 
   let totalFiles = 0
   let totalVars = 0
