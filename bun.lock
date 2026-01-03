@@ -1,0 +1,24 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "opencode-dotenv",
+      "dependencies": {
+        "jsonc-parser": "^3.3.1",
+      },
+      "peerDependencies": {
+        "@opencode-ai/plugin": "*",
+      },
+    },
+  },
+  "packages": {
+    "@opencode-ai/plugin": ["@opencode-ai/plugin@1.0.224", "", { "dependencies": { "@opencode-ai/sdk": "1.0.224", "zod": "4.1.8" } }, "sha512-V2Su55FI6NGyabFHo853+8r9h66q//gsYWCIODbwRs47qi4VfbFylfddJxQDD+/M/H7w0++ojbQC9YCLNDXdKw=="],
+
+    "@opencode-ai/sdk": ["@opencode-ai/sdk@1.0.224", "", {}, "sha512-gODyWLDTaz38qISxRdJKsEiFqvJNcFzu4/awoSICIl8j8gx6qDxLsYWVp/ToO4LKXTvHMn8yyZpM3ZEdGhDC+g=="],
+
+    "jsonc-parser": ["jsonc-parser@3.3.1", "", {}, "sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ=="],
+
+    "zod": ["zod@4.1.8", "", {}, "sha512-5R1P+WwQqmmMIEACyzSvo4JXHY5WiAFHRMg+zBZKgKS+Q1viRa0C1hmUKtHltoIFKtIdki3pRxkmpP74jnNYHQ=="],
+  }
+}

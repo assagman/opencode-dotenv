@@ -1,0 +1,13 @@
+{
+  "name": "opencode-dotenv",
+  "version": "0.1.0",
+  "description": "OpenCode plugin to load .env files at startup",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "@opencode-ai/plugin": "*"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
+  }
+}
