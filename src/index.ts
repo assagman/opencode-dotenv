@@ -1,4 +1,4 @@
-import type { Plugin } from "@opencode-ai/plugin"
+import type { Plugin, PluginInput } from "@opencode-ai/plugin"
 import { parse } from "jsonc-parser"
 import { resolve, normalize } from "node:path"
 import { homedir as osHomedir } from "node:os"
@@ -213,7 +213,7 @@ async function loadDotenvFile(
   }
 }
 
-export const DotEnvPlugin: Plugin = async () => {
+export const DotEnvPlugin: Plugin = async (_input: PluginInput) => {
   if ((globalThis as Record<string, unknown>)[LOAD_GUARD]) {
     return {}
   }
