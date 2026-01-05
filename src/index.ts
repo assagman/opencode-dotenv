@@ -57,6 +57,7 @@ function parseDotenv(content: string): Record<string, string> {
 }
 
 function parseValue(raw: string): string {
+  if (typeof raw !== "string") return ""
   let value = raw.trim()
 
   if (value.startsWith('"')) {
@@ -169,7 +170,12 @@ async function loadConfig(): Promise<DotEnvConfig> {
       const content = await file.text()
       const config = parse(content, [], {
         allowTrailingComma: true,
-      }) as DotEnvConfig
+      }) as DotEnvConfig | undefined
+
+      if (!config || !Array.isArray(config.files)) {
+        logToFile("Invalid config format, using defaults")
+        return { files: [], load_cwd_env: true }
+      }
 
       loggingEnabled = config.logging?.enabled !== false
       return config
@@ -184,35 +190,26 @@ async function loadConfig(): Promise<DotEnvConfig> {
 async function loadDotenvFile(
   filePath: string,
   prefix?: string
-): Promise<{ count: number; success: boolean; skipped: string[] }> {
-  const skipped: string[] = []
-
+): Promise<{ count: number; success: boolean }> {
   try {
     const file = Bun.file(filePath)
     if (!(await file.exists())) {
       logToFile(`File not found: ${filePath}`)
-      return { count: 0, success: false, skipped }
+      return { count: 0, success: false }
     }
 
     const content = await file.text()
     const envVars = parseDotenv(content)
 
-    let count = 0
     for (const [key, value] of Object.entries(envVars)) {
-      if (!isValidEnvKey(key)) {
-        skipped.push(key)
-        continue
-      }
-
       const envKey = prefix ? `${prefix}${key}` : key
       process.env[envKey] = value
-      count++
     }
 
-    return { count, success: true, skipped }
+    return { count: Object.keys(envVars).length, success: true }
   } catch (error) {
     logToFile(`Failed to load ${filePath}: ${error}`)
-    return { count: 0, success: false, skipped }
+    return { count: 0, success: false }
   }
 }
 
@@ -245,9 +242,6 @@ export const DotEnvPlugin: Plugin = async () => {
       totalFiles++
       totalVars += result.count
       logToFile(`Loaded ${result.count} vars`)
-      if (result.skipped.length > 0) {
-        logToFile(`Skipped invalid keys: ${result.skipped.join(", ")}`)
-      }
     }
   }
 
@@ -259,9 +253,6 @@ export const DotEnvPlugin: Plugin = async () => {
       totalFiles++
       totalVars += result.count
       logToFile(`Loaded ${result.count} vars from cwd`)
-      if (result.skipped.length > 0) {
-        logToFile(`Skipped invalid keys: ${result.skipped.join(", ")}`)
-      }
     }
   }
 
