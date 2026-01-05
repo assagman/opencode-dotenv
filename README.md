@@ -2,28 +2,9 @@
 
 OpenCode plugin to load `.env` files at startup.
 
-## Features
+## Setup
 
-- Load multiple `.env` files in order via config file
-- Load `.env` from current working directory (optional)
-- Override existing environment variables (later files override earlier ones)
-- Configurable logging to `/tmp/opencode-dotenv.log` (enabled by default)
-- Prevents double loading with load guard
-- JSONC config file format (supports comments and trailing commas)
-- **Requires Bun runtime**
-
-## Installation
-
-Add to your `opencode.jsonc`:
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": ["file:./plugins/opencode-dotenv"]
-}
-```
-
-After publishing to npm, you can use:
+Add to `~/.config/opencode/opencode.jsonc`:
 
 ```jsonc
 {
@@ -31,163 +12,49 @@ After publishing to npm, you can use:
 }
 ```
 
-## Configuration
+## Config
 
-Create `opencode-dotenv.jsonc` in one of these locations:
-
-1. `~/.config/opencode/opencode-dotenv.jsonc` (recommended, global config)
-2. `./opencode-dotenv.jsonc` in current working directory (project-specific)
-
-**Note:** Config files are loaded in the order above; the first found file is used.
-
-### Config Schema
-
-Config file uses **JSONC format** (JSON with Comments), which supports:
-- `//` single-line comments
-- `/* */` multi-line comments
-- Trailing commas
-- Trailing spaces
-
-```jsonc
-{
-  "files": [
-    "~/.config/opencode/.env",
-    "~/a/.env"
-  ],
-  "load_cwd_env": true,
-  "logging": {
-    "enabled": true
-  }
-}
-```
-
-**Fields:**
-- `files` (array, optional): List of `.env` file paths to load in order. Later files override earlier ones.
-- `load_cwd_env` (boolean, optional): Whether to load `.env` from the directory where OpenCode is opened. Defaults to `true`.
-- `logging.enabled` (boolean, optional): Enable/disable logging to `/tmp/opencode-dotenv.log`. Defaults to `true`.
-
-**Notes:**
-- Use `~` for home directory (automatically expanded)
-- Paths are expanded before loading
-- If no config file exists, only loads `./.env` from cwd (if present)
-- Logging writes to `/tmp/opencode-dotenv.log` for debugging
-
-### Load Order
-
-1. Files listed in `config.files` array (in order, later files override earlier ones)
-2. `.env` from current working directory (if `load_cwd_env: true`)
-
-This ensures project-specific env vars have the highest precedence.
-
-## Usage Examples
-
-### Load global and project-specific .env files
-
-Config (`~/.config/opencode/opencode-dotenv.jsonc`):
-
-```jsonc
-{
-  "files": [
-    "~/.config/opencode/.env"
-  ],
-  "load_cwd_env": true,
-  "logging": {
-    "enabled": true
-  }
-}
-```
-
-Result:
-1. Loads `~/.config/opencode/.env`
-2. Loads `./.env` from cwd (overrides any conflicts)
-3. Logs all activity to `/tmp/opencode-dotenv.log`
-
-### Load multiple global files without cwd .env
-
-Config (`~/.config/opencode/opencode-dotenv.jsonc`):
-
-```jsonc
-{
-  "files": [
-    "~/.config/opencode/.env",
-    "~/a/.env"
-  ],
-  "load_cwd_env": false,
-  "logging": {
-    "enabled": false
-  }
-}
-```
-
-Result:
-1. Loads `~/.config/opencode/.env`
-2. Loads `~/a/.env` (overrides conflicts from first file)
-3. Skips cwd `.env`
-4. No logging output
-
-### Example .env files
-
-`~/.config/opencode/.env`:
-
-```bash
-# OpenCode Dotenv Configuration
-OPENCODE_API_KEY=your_api_key_here
-OPENCODE_DEBUG=true
-OPENCODE_MAX_TOKENS=100000
-```
-
-`./.env` (project-specific):
-
-```bash
-# Project-specific overrides
-OPENCODE_DEBUG=false
-PROJECT_API_KEY=project_specific_key
-```
-
-Result: `OPENCODE_DEBUG` will be `false` (from cwd), `OPENCODE_API_KEY` from global, `PROJECT_API_KEY` from cwd.
-
-### Logging
-
-View plugin activity logs:
-
-```bash
-tail -f /tmp/opencode-dotenv.log
-```
-
-Disable logging in config:
+Create `~/.config/opencode/opencode-dotenv.jsonc`:
 
 ```jsonc
 {
   "files": ["~/.config/opencode/.env"],
-  "logging": {
-    "enabled": false
-  }
+  "load_cwd_env": true,
+  "prefix": "", // or "MYAPP_"
+  "logging": { "enabled": true }
 }
 ```
 
-## Development
+| Option | Default | Description |
+|--------|---------|-------------|
+| `files` | `[]` | `.env` files to load (later overrides earlier) |
+| `load_cwd_env` | `true` | Load `.env` from cwd |
+| `prefix` | `""` | Prefix for all variable names |
+| `logging.enabled` | `true` | Log to `/tmp/opencode-dotenv.log` |
 
-### Plugin structure
-
-```
-opencode-dotenv/
-├── package.json
-├── src/
-│   └── index.ts
-└── dist/
-    └── index.js  (built)
-```
-
-### Build
+## .env Format
 
 ```bash
-bun run build
+KEY=value
+export EXPORTED=value
+QUOTED="with spaces"
+SINGLE='literal'
+MULTILINE=first\
+second
+INLINE=value # comment stripped
+ESCAPES="line1\nline2\ttab"
 ```
 
-### Publish
+## Security
+
+- Paths restricted to `$HOME` or cwd
+- Path traversal rejected
+- Keys validated: `^[a-zA-Z_][a-zA-Z0-9_]*$`
+
+## Debug
 
 ```bash
-npm publish
+tail -f /tmp/opencode-dotenv.log
 ```
 
 ## License

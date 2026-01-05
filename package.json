@@ -1,12 +1,28 @@
 {
   "name": "opencode-dotenv",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "OpenCode plugin to load .env files at startup",
   "main": "./dist/index.js",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/assagman/opencode-dotenv"
+  },
+  "bugs": {
+    "url": "https://github.com/assagman/opencode-dotenv/issues"
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "dotenv",
+    "env",
+    "environment",
+    "variables"
+  ],
   "scripts": {
     "build": "bun build src/index.ts --outdir dist --target bun",
+    "test": "bun test",
     "prepublishOnly": "bun run build"
   },
   "files": [
@@ -20,5 +36,7 @@
   "dependencies": {
     "jsonc-parser": "^3.3.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/bun": "^1.2.4"
+  }
 }

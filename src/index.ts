@@ -1,14 +1,20 @@
 import type { Plugin } from "@opencode-ai/plugin"
-import { homedir } from "node:os"
 import { parse } from "jsonc-parser"
+import { resolve, normalize } from "node:path"
+import { homedir as osHomedir } from "node:os"
 
-const PLUGIN_NAME = "opencode-dotenv"
 const LOG_FILE = "/tmp/opencode-dotenv.log"
 const LOAD_GUARD = "__opencodeDotenvLoaded"
+const VALID_ENV_KEY = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+
+function getHomeDir(): string {
+  return process.env.HOME ?? osHomedir()
+}
 
 interface DotEnvConfig {
   files: string[]
   load_cwd_env?: boolean
+  prefix?: string
   logging?: {
     enabled?: boolean
   }
@@ -16,130 +22,252 @@ interface DotEnvConfig {
 
 function parseDotenv(content: string): Record<string, string> {
   const result: Record<string, string> = {}
+  const lines = content.split("\n")
+  let i = 0
 
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith("#")) continue
+  while (i < lines.length) {
+    let line = lines[i].trim()
+    i++
 
-    const match = trimmed.match(/^export\s+([^=]+)=(.*)$/)
-    const key = match ? match[1] : trimmed.split("=")[0]
-    const value = match ? match[2] : trimmed.substring(key.length + 1)
+    if (!line || line.startsWith("#")) continue
 
-    if (key) {
-      let parsedValue = value.trim()
-      if ((parsedValue.startsWith('"') && parsedValue.endsWith('"')) ||
-          (parsedValue.startsWith("'") && parsedValue.endsWith("'"))) {
-        parsedValue = parsedValue.slice(1, -1)
-      }
-      result[key.trim()] = parsedValue
+    while (line.endsWith("\\") && i < lines.length) {
+      line = line.slice(0, -1) + lines[i]
+      i++
+    }
+
+    const exportMatch = line.match(/^export\s+(.*)$/)
+    if (exportMatch) {
+      line = exportMatch[1]
+    }
+
+    const eqIndex = line.indexOf("=")
+    if (eqIndex === -1) continue
+
+    const key = line.substring(0, eqIndex).trim()
+    const value = parseValue(line.substring(eqIndex + 1))
+
+    if (key && isValidEnvKey(key)) {
+      result[key] = value
     }
   }
 
   return result
 }
 
-function expandPath(path: string): string {
-  return path.replace(/^~/, homedir())
+function parseValue(raw: string): string {
+  let value = raw.trim()
+
+  if (value.startsWith('"')) {
+    const endQuote = findClosingQuote(value, '"')
+    if (endQuote !== -1) {
+      value = value.substring(1, endQuote)
+      return value
+        .replace(/\\n/g, "\n")
+        .replace(/\\r/g, "\r")
+        .replace(/\\t/g, "\t")
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, "\\")
+    }
+    return value
+  }
+
+  if (value.startsWith("'")) {
+    const endQuote = findClosingQuote(value, "'")
+    if (endQuote !== -1) {
+      return value.substring(1, endQuote)
+    }
+    return value
+  }
+
+  const inlineCommentIndex = value.indexOf(" #")
+  if (inlineCommentIndex !== -1) {
+    value = value.substring(0, inlineCommentIndex)
+  }
+
+  return value.trim()
+}
+
+function findClosingQuote(str: string, quote: string): number {
+  let i = 1
+  while (i < str.length) {
+    if (str[i] === "\\" && i + 1 < str.length) {
+      i += 2
+      continue
+    }
+    if (str[i] === quote) {
+      return i
+    }
+    i++
+  }
+  return -1
+}
+
+function isValidEnvKey(key: string): boolean {
+  return VALID_ENV_KEY.test(key)
+}
+
+function expandPath(rawPath: string): string | null {
+  const home = getHomeDir()
+  const expanded = rawPath.replace(/^~/, home)
+  const resolved = resolve(expanded)
+  const normalized = normalize(resolved)
+
+  const cwd = process.cwd()
+
+  const isWithinAllowedDirectory =
+    normalized.startsWith(home) || normalized.startsWith(cwd)
+
+  return isWithinAllowedDirectory ? normalized : null
 }
 
 let loggingEnabled = true
+let logBuffer: string[] = []
+let flushScheduled = false
 
 function logToFile(message: string): void {
   if (!loggingEnabled) return
+
+  const timestamp = new Date().toISOString()
+  logBuffer.push(`[${timestamp}] ${message}`)
+
+  if (!flushScheduled) {
+    flushScheduled = true
+    queueMicrotask(flushLogs)
+  }
+}
+
+async function flushLogs(): Promise<void> {
+  if (logBuffer.length === 0) {
+    flushScheduled = false
+    return
+  }
+
+  const messages = logBuffer.join("\n") + "\n"
+  logBuffer = []
+  flushScheduled = false
+
   try {
-    const timestamp = new Date().toISOString()
-    Bun.appendFileSync(LOG_FILE, `[${timestamp}] ${message}\n`)
-  } catch (e) {
-    // Silent fail
+    const file = Bun.file(LOG_FILE)
+    const existing = (await file.exists()) ? await file.text() : ""
+    await Bun.write(LOG_FILE, existing + messages)
+  } catch {
+    loggingEnabled = false
   }
 }
 
 async function loadConfig(): Promise<DotEnvConfig> {
-  const configPaths = [
-    `${homedir()}/.config/opencode/opencode-dotenv.jsonc`,
-    `${process.cwd()}/opencode-dotenv.jsonc`
-  ]
+  const configPath = `${getHomeDir()}/.config/opencode/opencode-dotenv.jsonc`
 
-  for (const configPath of configPaths) {
-    try {
-      const file = Bun.file(configPath)
-      if (!(await file.exists())) continue
-
+  try {
+    const file = Bun.file(configPath)
+    if (await file.exists()) {
       const content = await file.text()
-      const config = parse(content, [], { allowTrailingComma: true }) as DotEnvConfig
+      const config = parse(content, [], {
+        allowTrailingComma: true,
+      }) as DotEnvConfig
 
-      // Apply logging setting from config
       loggingEnabled = config.logging?.enabled !== false
       return config
-    } catch (e) {
-      logToFile(`Failed to load config: ${e}`)
     }
+  } catch (e) {
+    logToFile(`Failed to load config: ${e}`)
   }
 
   return { files: [], load_cwd_env: true }
 }
 
-async function loadDotenvFile(filePath: string): Promise<{ count: number; success: boolean }> {
+async function loadDotenvFile(
+  filePath: string,
+  prefix?: string
+): Promise<{ count: number; success: boolean; skipped: string[] }> {
+  const skipped: string[] = []
+
   try {
     const file = Bun.file(filePath)
     if (!(await file.exists())) {
       logToFile(`File not found: ${filePath}`)
-      return { count: 0, success: false }
+      return { count: 0, success: false, skipped }
     }
 
     const content = await file.text()
     const envVars = parseDotenv(content)
 
+    let count = 0
     for (const [key, value] of Object.entries(envVars)) {
-      process.env[key] = value
+      if (!isValidEnvKey(key)) {
+        skipped.push(key)
+        continue
+      }
+
+      const envKey = prefix ? `${prefix}${key}` : key
+      process.env[envKey] = value
+      count++
     }
 
-    return { count: Object.keys(envVars).length, success: true }
+    return { count, success: true, skipped }
   } catch (error) {
     logToFile(`Failed to load ${filePath}: ${error}`)
-    return { count: 0, success: false }
+    return { count: 0, success: false, skipped }
   }
 }
 
-export const DotEnvPlugin: Plugin = async (ctx) => {
-  if ((globalThis as any)[LOAD_GUARD]) {
+export const DotEnvPlugin: Plugin = async () => {
+  if ((globalThis as Record<string, unknown>)[LOAD_GUARD]) {
     return {}
   }
-  (globalThis as any)[LOAD_GUARD] = true
+  (globalThis as Record<string, unknown>)[LOAD_GUARD] = true
 
   logToFile("Plugin started")
 
   const config = await loadConfig()
-  logToFile(`Config loaded: ${config.files.length} files, load_cwd_env=${config.load_cwd_env}, logging=${loggingEnabled}`)
+  logToFile(
+    `Config loaded: ${config.files.length} files, load_cwd_env=${config.load_cwd_env}, prefix=${config.prefix ?? "(none)"}, logging=${loggingEnabled}`
+  )
 
   let totalFiles = 0
   let totalVars = 0
 
   for (const rawPath of config.files) {
     const filePath = expandPath(rawPath)
+    if (!filePath) {
+      logToFile(`SECURITY: Rejected path outside allowed directories: ${rawPath}`)
+      continue
+    }
+
     logToFile(`Loading: ${filePath}`)
-    const result = await loadDotenvFile(filePath)
+    const result = await loadDotenvFile(filePath, config.prefix)
     if (result.success) {
       totalFiles++
       totalVars += result.count
       logToFile(`Loaded ${result.count} vars`)
+      if (result.skipped.length > 0) {
+        logToFile(`Skipped invalid keys: ${result.skipped.join(", ")}`)
+      }
     }
   }
 
   if (config.load_cwd_env !== false) {
     const cwdEnvPath = `${process.cwd()}/.env`
     logToFile(`Loading cwd: ${cwdEnvPath}`)
-    const result = await loadDotenvFile(cwdEnvPath)
+    const result = await loadDotenvFile(cwdEnvPath, config.prefix)
     if (result.success) {
       totalFiles++
       totalVars += result.count
       logToFile(`Loaded ${result.count} vars from cwd`)
+      if (result.skipped.length > 0) {
+        logToFile(`Skipped invalid keys: ${result.skipped.join(", ")}`)
+      }
     }
   }
 
   logToFile(`Plugin finished: ${totalFiles} files, ${totalVars} vars`)
 
+  await flushLogs()
+
   return {}
 }
 
 export default DotEnvPlugin
+
+export { parseDotenv, parseValue, expandPath, isValidEnvKey }
