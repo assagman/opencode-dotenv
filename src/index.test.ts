@@ -66,6 +66,14 @@ describe("parseDotenv", () => {
     const result = parseDotenv("KEY=")
     expect(result.KEY).toBe("")
   })
+
+  it("returns empty object for non-string input", () => {
+    expect(parseDotenv(undefined as unknown as string)).toEqual({})
+    expect(parseDotenv(null as unknown as string)).toEqual({})
+    expect(parseDotenv(123 as unknown as string)).toEqual({})
+    expect(parseDotenv({} as unknown as string)).toEqual({})
+    expect(parseDotenv([] as unknown as string)).toEqual({})
+  })
 })
 
 describe("parseValue", () => {

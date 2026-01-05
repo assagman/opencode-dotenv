@@ -22,6 +22,7 @@ interface DotEnvConfig {
 
 function parseDotenv(content: string): Record<string, string> {
   const result: Record<string, string> = {}
+  if (typeof content !== "string") return result
   const lines = content.split("\n")
   let i = 0
 
