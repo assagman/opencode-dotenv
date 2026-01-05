@@ -108,6 +108,9 @@ function isValidEnvKey(key: string): boolean {
 }
 
 function expandPath(rawPath: string): string | null {
+  if (typeof rawPath !== "string") {
+    return null
+  }
   const home = getHomeDir()
   const expanded = rawPath.replace(/^~/, home)
   const resolved = resolve(expanded)

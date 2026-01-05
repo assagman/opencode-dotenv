@@ -142,6 +142,13 @@ describe("expandPath", () => {
     const result = expandPath("~/../../../etc/passwd")
     expect(result).toBeNull()
   })
+
+  it("returns null for non-string input", () => {
+    expect(expandPath(undefined as unknown as string)).toBeNull()
+    expect(expandPath(null as unknown as string)).toBeNull()
+    expect(expandPath(123 as unknown as string)).toBeNull()
+    expect(expandPath({} as unknown as string)).toBeNull()
+  })
 })
 
 describe("DotEnvPlugin", () => {
