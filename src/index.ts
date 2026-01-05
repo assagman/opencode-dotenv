@@ -23,10 +23,18 @@ function parseDotenv(content: string): Record<string, string> {
 
     const match = trimmed.match(/^export\s+([^=]+)=(.*)$/)
     const key = match ? match[1] : trimmed.split("=")[0]
-    const value = match ? match[2] : trimmed.substring(key.length + 1)
+    let value = match ? match[2] : trimmed.substring(key.length + 1)
 
     if (key) {
       let parsedValue = value.trim()
+
+      if (!parsedValue.startsWith('"') && !parsedValue.startsWith("'")) {
+        const inlineCommentIndex = parsedValue.indexOf(" #")
+        if (inlineCommentIndex !== -1) {
+          parsedValue = parsedValue.substring(0, inlineCommentIndex).trim()
+        }
+      }
+
       if ((parsedValue.startsWith('"') && parsedValue.endsWith('"')) ||
           (parsedValue.startsWith("'") && parsedValue.endsWith("'"))) {
         parsedValue = parsedValue.slice(1, -1)
@@ -143,3 +151,4 @@ export const DotEnvPlugin: Plugin = async (ctx) => {
 }
 
 export default DotEnvPlugin
+export { parseDotenv }
