@@ -192,3 +192,15 @@ test("parseDotenv handles line with only comment marker", () => {
 
   expect(result).toEqual({})
 })
+
+test("parseDotenv handles non-string content", () => {
+  const result1 = parseDotenv(null as any)
+  const result2 = parseDotenv(undefined as any)
+  const result3 = parseDotenv(123 as any)
+  const result4 = parseDotenv({} as any)
+
+  expect(result1).toEqual({})
+  expect(result2).toEqual({})
+  expect(result3).toEqual({})
+  expect(result4).toEqual({})
+})

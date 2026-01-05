@@ -14,8 +14,10 @@ interface DotEnvConfig {
   }
 }
 
-function parseDotenv(content: string): Record<string, string> {
+function parseDotenv(content: unknown): Record<string, string> {
   const result: Record<string, string> = {}
+
+  if (typeof content !== "string") return result
 
   for (const line of content.split("\n")) {
     const trimmed = line.trim()
@@ -96,6 +98,11 @@ async function loadDotenvFile(filePath: string): Promise<{ count: number; succes
     }
 
     const content = await file.text()
+    if (typeof content !== "string") {
+      logToFile(`Invalid content type from ${filePath}: ${typeof content}`)
+      return { count: 0, success: false }
+    }
+
     const envVars = parseDotenv(content)
 
     for (const [key, value] of Object.entries(envVars)) {
