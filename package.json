@@ -1,13 +1,13 @@
 {
   "name": "opencode-dotenv",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "OpenCode plugin to load .env files at startup",
   "main": "./dist/index.js",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/assagman/opencode-dotenv"
+    "url": "git+https://github.com/assagman/opencode-dotenv.git"
   },
   "bugs": {
     "url": "https://github.com/assagman/opencode-dotenv/issues"
