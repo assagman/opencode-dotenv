@@ -260,10 +260,7 @@ export const DotEnvPlugin: Plugin = async (_input: PluginInput) => {
 
   await flushLogs()
 
-  return {
-    config: async () => {},
-    event: async () => {},
-  }
+  return {}
 }
 
 export default DotEnvPlugin
