@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-01-08
+
+### Added
+- New `docs/ARCHITECTURE.md` with comprehensive startup sequence diagrams
+- Prominent limitation warning at top of README
+
+### Fixed
+- README: config file name corrected to `dotenv.jsonc` (was `opencode-dotenv.jsonc`)
+- README: config search order corrected to local-first, then global
+- README: log file path corrected to `~/.local/share/opencode/dotenv.log`
+- README: logging default corrected to disabled (was incorrectly stated as enabled)
+
+### Changed
+- AGENTS.md: added critical architectural limitation section
+- AGENTS.md: updated code organization to reflect current structure
+
 ## [0.5.0] - 2026-01-08
 
 ### Changed

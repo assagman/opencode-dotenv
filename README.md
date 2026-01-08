@@ -2,19 +2,27 @@
 
 OpenCode plugin to load `.env` files at startup.
 
+> **Important Limitation**
+> 
+> This plugin **cannot** set environment variables for use in OpenCode's config file (`opencode.jsonc`). The plugin loads *after* OpenCode parses its configuration, so `{env:VARNAME}` references in config are resolved before this plugin runs.
+> 
+> **Use this plugin for:** Managing environment variables available during chat sessions, tool executions, and bash commands.
+> 
+> **Do not use this plugin for:** Setting API keys or other config values referenced via `{env:VAR}` syntax in `opencode.jsonc`. For those, set variables in your shell profile (`~/.zshrc`, `~/.bashrc`) before starting OpenCode.
+> 
+> See [Architecture](docs/ARCHITECTURE.md) for details on the OpenCode startup sequence.
+
 ## Features
  
 - Load multiple `.env` files in order via config file
 - Load `.env` from current working directory (optional)
 - Override existing environment variables (later files override earlier ones)
-- Configurable logging to `/tmp/opencode-dotenv.log` (enabled by default)
+- Configurable logging to `~/.local/share/opencode/dotenv.log` (disabled by default)
 - Prevents double loading with load guard
 - JSONC config file format (supports comments and trailing commas)
 - **Requires Bun runtime**
- 
-## Limitations
 
-**Important:** This plugin loads AFTER OpenCode configuration is already parsed. Therefore:
+## Limitations
 
 1. **Cannot modify existing OpenCode config** - Variables loaded by this plugin cannot be referenced in `opencode.jsonc` using `{env:VAR}` syntax. OpenCode reads its config before plugins initialize.
 
@@ -45,12 +53,12 @@ After publishing to npm, you can use:
 
 ## Configuration
 
-Create `opencode-dotenv.jsonc` in one of these locations:
+Create `dotenv.jsonc` in one of these locations (searched in order, first found wins):
 
-1. `~/.config/opencode/opencode-dotenv.jsonc` (recommended, global config)
-2. `./opencode-dotenv.jsonc` in current working directory (project-specific)
+1. `./dotenv.jsonc` in current working directory (project-specific)
+2. `~/.config/opencode/dotenv.jsonc` (global config)
 
-**Note:** Config files are loaded in the order above; the first found file is used.
+**Note:** Only the first found config file is used; configs are not merged.
 
 ### Config Schema
 
@@ -68,7 +76,7 @@ Config file uses **JSONC format** (JSON with Comments), which supports:
   ],
   "load_cwd_env": true,
   "logging": {
-    "enabled": true
+    "enabled": false
   }
 }
 ```
@@ -76,13 +84,13 @@ Config file uses **JSONC format** (JSON with Comments), which supports:
 **Fields:**
 - `files` (array, optional): List of `.env` file paths to load in order. Later files override earlier ones.
 - `load_cwd_env` (boolean, optional): Whether to load `.env` from the directory where OpenCode is opened. Defaults to `true`.
-- `logging.enabled` (boolean, optional): Enable/disable logging to `/tmp/opencode-dotenv.log`. Defaults to `true`.
+- `logging.enabled` (boolean, optional): Enable/disable logging to `~/.local/share/opencode/dotenv.log`. Defaults to `false`.
 
 **Notes:**
 - Use `~` for home directory (automatically expanded)
 - Paths are expanded before loading
 - If no config file exists, only loads `./.env` from cwd (if present)
-- Logging writes to `/tmp/opencode-dotenv.log` for debugging
+- Logging writes to `~/.local/share/opencode/dotenv.log` for debugging
 
 ### Load Order
 
@@ -95,7 +103,7 @@ This ensures project-specific env vars have the highest precedence.
 
 ### Load global and project-specific .env files
 
-Config (`~/.config/opencode/opencode-dotenv.jsonc`):
+Config (`~/.config/opencode/dotenv.jsonc`):
 
 ```jsonc
 {
@@ -112,11 +120,11 @@ Config (`~/.config/opencode/opencode-dotenv.jsonc`):
 Result:
 1. Loads `~/.config/opencode/.env`
 2. Loads `./.env` from cwd (overrides any conflicts)
-3. Logs all activity to `/tmp/opencode-dotenv.log`
+3. Logs all activity to `~/.local/share/opencode/dotenv.log`
 
 ### Load multiple global files without cwd .env
 
-Config (`~/.config/opencode/opencode-dotenv.jsonc`):
+Config (`~/.config/opencode/dotenv.jsonc`):
 
 ```jsonc
 {
@@ -143,12 +151,12 @@ Result:
  
 ```bash
 # OpenCode Dotenv Configuration
- OPENCODE_API_KEY=your_api_key_here
- OPENCODE_DEBUG=true
- OPENCODE_MAX_TOKENS=100000
+OPENCODE_DEBUG=true
+OPENCODE_MAX_TOKENS=100000
+MY_PROJECT_KEY=secret123
 ```
 
-**Note:** This plugin cannot inject these variables into OpenCode's configuration loading process. To use `OPENCODE_API_KEY` in `opencode.jsonc`, set it in your shell profile (`~/.zshrc`, `~/.bashrc`) before starting OpenCode.
+**Note:** This plugin cannot inject variables into OpenCode's configuration loading process. To set `ANTHROPIC_API_KEY` or other provider API keys, set them in your shell profile (`~/.zshrc`, `~/.bashrc`) before starting OpenCode.
 
 `./.env` (project-specific):
 ```bash
@@ -157,23 +165,23 @@ OPENCODE_DEBUG=false
 PROJECT_API_KEY=project_specific_key
 ```
 
-Result: `OPENCODE_DEBUG` will be `false` (from cwd), `OPENCODE_API_KEY` from global, `PROJECT_API_KEY` from cwd.
+Result: `OPENCODE_DEBUG` will be `false` (from cwd), `MY_PROJECT_KEY` from global, `PROJECT_API_KEY` from cwd.
 
 ### Logging
 
 View plugin activity logs:
 
 ```bash
-tail -f /tmp/opencode-dotenv.log
+tail -f ~/.local/share/opencode/dotenv.log
 ```
 
-Disable logging in config:
+Enable logging in config:
 
 ```jsonc
 {
   "files": ["~/.config/opencode/.env"],
   "logging": {
-    "enabled": false
+    "enabled": true
   }
 }
 ```
@@ -186,7 +194,10 @@ Disable logging in config:
 opencode-dotenv/
 ├── package.json
 ├── src/
-│   └── index.ts
+│   ├── index.ts
+│   └── plugin.ts
+├── docs/
+│   └── ARCHITECTURE.md
 └── dist/
     └── index.js  (built)
 ```

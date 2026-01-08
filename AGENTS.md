@@ -10,6 +10,16 @@ OpenCode plugin that loads `.env` files at startup. This is a Bun runtime plugin
 **Type**: OpenCode plugin
 **Language**: TypeScript (ESM)
 
+### Critical Architectural Limitation
+
+This plugin **cannot** set environment variables for use in OpenCode's config file. OpenCode parses `opencode.jsonc` (including `{env:VAR}` resolution) **before** loading plugins. Therefore:
+
+- Variables set by this plugin are available to chat sessions and tool executions
+- Variables set by this plugin are **NOT** available to `{env:VAR}` references in `opencode.jsonc`
+- For config variables (API keys, etc.), users must set them in shell profile before starting OpenCode
+
+See `docs/ARCHITECTURE.md` for detailed startup sequence diagrams.
+
 ## Essential Commands
 
 ### Build & Install
@@ -78,14 +88,17 @@ bun run src/index.ts
 ```
 opencode-dotenv/
 ├── src/
-│   ├── index.ts              # Main plugin entry point
-│   ├── index.test.ts         # Unit tests
+│   ├── index.ts              # Entry point, re-exports
+│   ├── plugin.ts             # Main plugin implementation
+│   ├── test-utils.ts         # Internal test utilities
 │   └── profiler/
 │       ├── index.ts          # Profiler exports
 │       └── profiler.ts       # Performance profiler
 ├── bench/
 │   ├── utils.ts              # Benchmark utilities
 │   └── init.bench.ts         # Initialization benchmarks
+├── docs/
+│   └── ARCHITECTURE.md       # Plugin architecture and startup sequence
 ├── dist/                     # Built output (generated, not in git)
 ├── package.json
 ├── Makefile
@@ -99,6 +112,7 @@ opencode-dotenv/
 - Tests co-located with source code
 - Only `dist/` directory is published to npm (see `package.json` `files` field)
 - Source files are excluded from npm package via `.npmignore`
+- Architecture docs in `docs/` directory
 
 ## Naming Conventions & Style
 
