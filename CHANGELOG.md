@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- CI workflow with tests and Codecov coverage
+- Automated release PR workflow
+- Automated publish workflow on PR merge (npm OIDC)
+- Makefile workflow helpers (`wf-release`, `wf-ci`, etc.)
+- Repository metadata in `package.json`
+
+### Changed
+- Updated `RELEASE.md` with automated release process documentation
+
 ## [0.5.1] - 2026-01-08
 
 ### Added
@@ -46,22 +58,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Resolved `TypeError: hook.config is not a function` error
 - Clean exports prevent OpenCode from treating utilities as hooks
 
-## [0.4.1] - Previous
+## [0.4.1] - 2026-01-05
 
-- Bug fixes and improvements
+### Fixed
+- Handle non-string content in config parser to prevent crash
 
-## [0.4.0] - Previous
+## [0.4.0] - 2026-01-05
 
-- Initial profiler support
+### Added
+- Comprehensive dotenv parsing with full test coverage
+- Support for quoted values (single and double quotes)
+- Support for inline comments
+- Support for multiline values
 
-## [0.3.0] - Previous
+## [0.3.8] - 2026-01-05
 
-- Added comprehensive dotenv parsing
+### Fixed
+- Revert explicit hooks to avoid trace trap crash on OpenCode startup
 
-## [0.2.0] - Previous
+## [0.3.7] - 2026-01-05
 
+### Added
+- Explicit empty hooks structure for OpenCode compatibility
+
+## [0.3.6] - 2026-01-05
+
+### Changed
+- Prepare for release with OpenCode plugin compatibility fixes
+
+## [0.3.5] - 2026-01-05
+
+### Fixed
+- Accept `PluginInput` parameter in plugin signature for OpenCode compatibility
+
+## [0.3.4] - 2026-01-05
+
+### Fixed
+- Handle non-string input in `parseValue` function
+- Add comprehensive tests for edge cases
+
+## [0.3.3] - 2026-01-05
+
+### Fixed
+- Handle non-string input in `parseDotenv` to prevent runtime errors
+
+## [0.3.2] - 2026-01-05
+
+### Fixed
+- Handle non-string input in `expandPath` to prevent runtime crash
+
+## [0.3.1] - 2026-01-05
+
+### Fixed
+- Correct package URL in package.json
+
+## [0.3.0] - 2026-01-05
+
+### Added
+- Improved error handling throughout the plugin
+- Better documentation
+
+### Changed
+- More robust config file parsing
+
+## [0.2.0] - 2026-01-04
+
+### Added
 - First public release
+- Load `.env` files from configured paths
+- Support for `~` home directory expansion
+- JSONC config file support (`dotenv.jsonc`)
+- Optional logging to file
 
-## [0.1.0] - Previous
+## [0.1.1] - 2026-01-04
 
+### Changed
+- Prepare package for npm publish
+- Add npm metadata
+
+## [0.1.0] - 2026-01-03
+
+### Added
 - Initial implementation
+- Basic dotenv file loading
+- Plugin structure for OpenCode
