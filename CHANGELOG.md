@@ -9,8 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.2] - 2026-01-15
 
-
-
 ### Added
 - CI workflow with tests and Codecov coverage
 - Automated release PR workflow
