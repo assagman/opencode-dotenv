@@ -1,5 +1,12 @@
 # opencode-dotenv
 
+[![npm version](https://badge.fury.io/js/opencode-dotenv.svg)](https://www.npmjs.com/package/opencode-dotenv)
+[![npm downloads](https://img.shields.io/npm/dm/opencode-dotenv)](https://www.npmjs.com/package/opencode-dotenv)
+[![license](https://img.shields.io/npm/l/opencode-dotenv)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
+[![Build Status](https://github.com/assagman/opencode-dotenv/actions/workflows/ci.yml/badge.svg)](https://github.com/assagman/opencode-dotenv/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/assagman/opencode-dotenv/branch/main/graph/badge.svg)](https://codecov.io/gh/assagman/opencode-dotenv)
+
 OpenCode plugin to load `.env` files at startup.
 
 > **Important Limitation**
